@@ -1,0 +1,82 @@
+<%# locals: (engagement:) %>
+<% connection = StripeBilling::Connection.current %>
+<% subscription = engagement.stripe_subscription %>
+<% charges = engagement.stripe_billing_charges.recent.includes(:agreement_version, :marked_paid_by).to_a %>
+<% if StripeBilling::Charge.billed_by_quickbooks?(engagement) %>
+  <p class="txt-small txt-subtle margin-none">This service is billed by QuickBooks, so Stripe won’t bill it too.</p>
+<% end %>
+<% if subscription %>
+  <p class="txt-small margin-none">
+    <%= status_tag subscription.external? ? "Billed another way" : subscription.status.humanize %>
+    <%= subscription.amount_label %><% if subscription.cancel_at_period_end? %>, ending at the end of the paid period<% end %><% if subscription.last_payment_failed_at %>, last payment failed <%= time_ago_in_words(subscription.last_payment_failed_at) %> ago<% end %>.
+  </p>
+  <% if subscription.last_error.present? %>
+    <p class="txt-x-small txt-negative margin-none"><%= subscription.last_error %></p>
+  <% end %>
+<% end %>
+
+<% if charges.any? %>
+  <ul class="settings__scrollable-list">
+    <% charges.each do |charge| %>
+      <%# herb:key charge.id %>
+      <li class="flex flex-column gap-half txt-small">
+        <div class="flex align-center gap-half">
+          <div class="txt-align-start min-width flex-item-grow">
+            <strong><%= charge.amount_label %></strong>
+            <span class="txt-subtle">· <%= charge.agreement_version.label %></span>
+            <div class="txt-x-small txt-subtle">
+              <% if charge.paid_via == "manual" %>
+                <%= person_tag charge.marked_paid_by, fallback: "Someone" %> recorded it <%= time_ago_in_words(charge.paid_at) %> ago: <%= charge.paid_note %>
+              <% elsif charge.paid? %>
+                Paid through Stripe <%= time_ago_in_words(charge.paid_at) %> ago
+              <% elsif charge.withdrawn? %>
+                Withdrawn: <%= charge.withdrawn_reason %>
+              <% elsif charge.change? %>
+                Change the amount where the client is billed, then mark it done
+              <% elsif charge.emailed_at %>
+                Link emailed <%= time_ago_in_words(charge.emailed_at) %> ago
+              <% elsif charge.payable? %>
+                Link ready, not emailed
+              <% end %>
+            </div>
+          </div>
+          <%= status_tag charge.state %>
+        </div>
+        <% if charge.last_error.present? %>
+          <p class="txt-x-small txt-negative margin-none"><%= charge.last_error %></p>
+        <% end %>
+
+        <div class="flex flex-wrap align-center gap-half">
+          <% if charge.payable? %>
+            <button type="button" class="btn txt-x-small" data-controller="copy-to-clipboard" data-copy-to-clipboard-content-value="<%= charge.pay_url %>" data-copy-to-clipboard-success-class="btn--reversed" data-action="copy-to-clipboard#copy">Copy link</button>
+            <%= button_to "Email link", stripe_charge_delivery_path(charge), class: "btn txt-x-small" %>
+          <% end %>
+          <% if !charge.paid? && !charge.withdrawn? && charge.last_error.present? %>
+            <%= button_to "Try again", stripe_charge_link_path(charge), class: "btn txt-x-small" %>
+          <% end %>
+          <% if charge.paid_via == "manual" %>
+            <%= button_to "Undo", stripe_charge_payment_path(charge), method: :delete, class: "btn txt-x-small" %>
+          <% end %>
+        </div>
+        <% if !charge.paid? && !charge.withdrawn? %>
+          <details class="txt-align-start">
+            <summary class="btn txt-x-small"><%= charge.change? ? "Mark done" : "Mark paid another way" %></summary>
+            <%= form_with url: stripe_charge_payment_path(charge), namespace: dom_id(charge), class: "flex flex-wrap align-center gap-half txt-small margin-block-start" do |form| %>
+              <%= form.text_field :note, class: "input flex-item-grow", autocomplete: "off", required: true, placeholder: charge.change? ? "Where you changed it" : "How they paid (check, bank transfer…)", aria: { label: "How they paid" } %>
+              <button type="submit" class="btn btn--link txt-small">Mark paid</button>
+            <% end %>
+          </details>
+        <% end %>
+      </li>
+    <% end %>
+  </ul>
+<% elsif connection&.connected? %>
+  <p class="txt-small txt-subtle margin-none">When the client approves, their payment link appears here, and on the approval page and by email.</p>
+<% else %>
+  <p class="txt-small txt-subtle margin-none">
+    Connect Stripe to offer the client a payment link when they approve.
+    <% if can?(:manage_settings) %>
+      <%= link_to "Stripe settings", stripe_settings_path, class: "txt-link" %>
+    <% end %>
+  </p>
+<% end %>

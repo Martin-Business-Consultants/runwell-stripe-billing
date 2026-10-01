@@ -1,0 +1,13 @@
+<%# locals: (item:) %>
+<% case item %>
+<% when StripeBilling::Charge %>
+  <%= link_to engagement_path(item.engagement, tab: "plugin-stripe_billing"), class: "txt-ink txt-align-start" do %>
+    <strong><%= item.engagement.ref %> <%= item.engagement.title %></strong> <span class="txt-subtle">· <%= item.amount_label %> <%= item.state %></span>
+    <div class="txt-x-small txt-subtle"><%= item.engagement.client.name %> · <%= item.agreement_version.label %> approved <%= time_ago_in_words(item.created_at) %> ago<% if item.last_error.present? %> · <%= item.last_error %><% end %></div>
+  <% end %>
+<% when StripeBilling::Subscription %>
+  <%= link_to engagement_path(item.engagement, tab: "plugin-stripe_billing"), class: "txt-ink txt-align-start" do %>
+    <strong><%= item.engagement.ref %> <%= item.engagement.title %></strong> <span class="txt-subtle">· subscription <%= item.status.humanize.downcase %></span>
+    <div class="txt-x-small txt-subtle"><%= item.engagement.client.name %> · <%= item.last_error.presence || "the last payment failed" %></div>
+  <% end %>
+<% end %>

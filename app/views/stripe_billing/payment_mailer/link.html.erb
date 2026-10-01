@@ -1,0 +1,11 @@
+<p>Hi <%= @contact.name %>,</p>
+<p>Thank you for approving <strong><%= @engagement.title %></strong> (<%= @engagement.ref %>).</p>
+<p>
+  <% if @charge.subscription? %>
+    The agreed amount is <strong><%= @charge.amount_label %></strong>. Set up your payment with Stripe:
+  <% else %>
+    The amount due is <strong><%= @charge.amount_label %></strong>. Pay securely with Stripe:
+  <% end %>
+</p>
+<p><%= link_to(@charge.subscription? ? "Set up payment" : "Pay now", @charge.pay_url(@contact.email)) %></p>
+<p>If you’ve arranged to pay another way, just reply to this email.</p>

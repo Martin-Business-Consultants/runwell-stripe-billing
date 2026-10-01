@@ -1,0 +1,68 @@
+<% @page_title = "Stripe" %>
+<%= render "settings/header", current: :stripe_billing %>
+
+<section class="settings">
+  <div class="settings__panel panel shadow txt-align-start">
+    <section class="settings__section flex flex-column gap">
+      <header>
+        <h2 class="divider">Connection</h2>
+      </header>
+
+      <% if @connection.connected? %>
+        <p class="txt-small margin-none">
+          <%= status_tag "Active" %>
+          Connected to <strong><%= @connection.account_name || @connection.account_id %></strong><%= " (test mode)" unless @connection.livemode? %><%= " since " + l(@connection.connected_at.to_date, format: :long) if @connection.connected_at %>.
+        </p>
+        <% if @connection.webhook_endpoint_id.present? %>
+          <p class="txt-small txt-subtle margin-none">
+            Stripe tells this install when a client pays<% if @connection.last_event_at %>; last heard from <%= time_ago_in_words(@connection.last_event_at) %> ago<% end %>.
+          </p>
+        <% else %>
+          <p class="txt-small txt-negative margin-none">Stripe can’t tell this install when a client pays, so payments won’t be marked automatically. Reconnect to try again.</p>
+        <% end %>
+      <% else %>
+        <p class="txt-small margin-none"><%= status_tag "Dormant" %> Not connected.</p>
+      <% end %>
+      <% if @connection.last_error.present? %>
+        <p class="txt-small txt-negative margin-none"><%= @connection.last_error %></p>
+      <% end %>
+      <p class="txt-small txt-subtle margin-none"><%= pluralize(@open, "payment") %> waiting on clients, <%= pluralize(@subscriptions, "service") %> billed.</p>
+
+      <div class="flex flex-wrap gap-half justify-center">
+        <%= button_to stripe_authorization_path, class: "btn btn--link txt-small", form: { data: { turbo: false } } do %>
+          <%= icon_tag "globe" %>
+          <span><%= @connection.connected? ? "Reconnect Stripe" : "Connect with Stripe" %></span>
+        <% end %>
+      </div>
+
+      <% if @connection.connected? %>
+        <%= render "layouts/shared/confirm", trigger: "Disconnect", title: "Disconnect Stripe?",
+              body: "Runwell stops making payment links and hearing about payments. Links already sent and running subscriptions carry on in Stripe.",
+              button: "Disconnect", path: stripe_settings_path, icon: "remove" %>
+      <% end %>
+    </section>
+
+    <section class="settings__section flex flex-column gap">
+      <header>
+        <h2 class="divider">How it works</h2>
+      </header>
+      <ul class="txt-small flex flex-column gap-half margin-none">
+        <li>When a client approves an agreement, the approval page offers a Stripe payment link for its amount, and it’s emailed to them: a subscription on the agreement’s cadence for a service, a one-time payment for fixed work (the initial price, then each change order’s difference).</li>
+        <li>Stripe marks each payment paid. If the client pays another way, mark it paid on the engagement: the link switches off so they can’t pay twice.</li>
+        <li>A service is billed once: a later revision moves its subscription to the new amount, and closing the service stops it at the end of the paid period. A service QuickBooks bills isn’t billed here too.</li>
+        <li>Amounts are charged in US dollars.</li>
+      </ul>
+      <p class="txt-x-small txt-subtle margin-none">Signing in goes through <%= StripeBilling::Oauth.broker_url %>, which hands this install its Stripe access and keeps nothing. Stripe sends payments to <code class="txt-x-small"><%= stripe_webhooks_url %></code>, so this install must be reachable at that address.</p>
+    </section>
+
+    <% if StripeBilling::Broker.configured? %>
+      <section class="settings__section flex flex-column gap">
+        <header>
+          <h2 class="divider">Sign-in broker</h2>
+        </header>
+        <p class="txt-small margin-none">This install holds the Stripe Connect platform’s keys and brokers “Connect with Stripe” for every install. In the platform’s Connect settings, the redirect URI is:</p>
+        <code class="txt-small"><%= stripe_broker_authorization_url %></code>
+      </section>
+    <% end %>
+  </div>
+</section>

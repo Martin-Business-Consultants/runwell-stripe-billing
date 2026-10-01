@@ -1,0 +1,25 @@
+<%# locals: (version:, link:) %>
+<%# On the client's approval page, once they've approved: the payment link for what they agreed. %>
+<% charge = version.approved? ? StripeBilling::Charge.find_by(agreement_version: version) : nil %>
+<% if charge && !charge.withdrawn? && !charge.change? %>
+  <section class="panel panel--wide shadow flex flex-column gap-half txt-align-start">
+    <h2 class="txt-medium font-weight-black margin-none">Payment</h2>
+    <% if charge.paid? %>
+      <p class="txt-small margin-none">Payment received for <strong><%= charge.amount_label %></strong>. Thank you.</p>
+    <% elsif charge.payable? %>
+      <p class="txt-small margin-none">
+        <% if charge.subscription? %>
+          The agreed amount is <strong><%= charge.amount_label %></strong>. Set up your payment with Stripe now; we’ve emailed you the link as well.
+        <% else %>
+          The amount due is <strong><%= charge.amount_label %></strong>. Pay securely with Stripe now; we’ve emailed you the link as well.
+        <% end %>
+      </p>
+      <%= link_to charge.pay_url(link.contact.email), class: "btn btn--link center" do %>
+        <span><%= charge.subscription? ? "Set up payment" : "Pay now" %></span>
+      <% end %>
+      <p class="txt-x-small txt-subtle margin-none">If you’ve arranged to pay another way, you can ignore this.</p>
+    <% else %>
+      <p class="txt-small margin-none">We’ll email you a payment link for <strong><%= charge.amount_label %></strong> shortly.</p>
+    <% end %>
+  </section>
+<% end %>

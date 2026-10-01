@@ -1,0 +1,8 @@
+Hi <%= @contact.name %>,
+
+Thank you for approving <%= @engagement.title %> (<%= @engagement.ref %>).
+
+<%= @charge.subscription? ? "The agreed amount is #{@charge.amount_label}. Set up your payment with Stripe:" : "The amount due is #{@charge.amount_label}. Pay securely with Stripe:" %>
+<%= @charge.pay_url(@contact.email) %>
+
+If you’ve arranged to pay another way, just reply to this email.

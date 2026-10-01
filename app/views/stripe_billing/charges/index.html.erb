@@ -1,0 +1,13 @@
+<% @page_title = "Payments" %>
+<% content_for :header do %>
+  <%= parent_page @engagement.ref, engagement_path(@engagement) %>
+<% end %>
+
+<section class="settings">
+  <div class="settings__panel panel shadow txt-align-start">
+    <section class="settings__section flex flex-column gap-half">
+      <h1 class="page-title"><%= @engagement.ref %> payments</h1>
+      <%= render "stripe_billing/charges/list", engagement: @engagement %>
+    </section>
+  </div>
+</section>

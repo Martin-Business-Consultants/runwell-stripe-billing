@@ -1,0 +1,11 @@
+<%# locals: (engagement:) %>
+<%# Staff: what each approved version asks the client to pay, whether they have, and the
+    service's one subscription. %>
+<% if can?(:manage_billing) %>
+  <section class="settings__section flex flex-column gap-half" id="stripe_payments">
+    <header>
+      <h2 class="divider">Payments</h2>
+    </header>
+    <%= render "stripe_billing/charges/list", engagement: engagement %>
+  </section>
+<% end %>

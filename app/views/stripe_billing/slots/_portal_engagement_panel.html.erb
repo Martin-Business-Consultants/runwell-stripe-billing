@@ -1,0 +1,22 @@
+<%# locals: (engagement:) %>
+<%# In the portal: payments still waiting on the client, with their links. %>
+<% charges = engagement.stripe_billing_charges.open.where.not(payment_link_url: nil).recent.includes(:agreement_version).to_a %>
+<% if charges.any? %>
+  <section class="settings__section flex flex-column gap-half">
+    <header>
+      <h2 class="divider">Payments</h2>
+    </header>
+    <ul class="settings__scrollable-list">
+      <% charges.each do |charge| %>
+        <%# herb:key charge.id %>
+        <li class="flex align-center gap-half txt-small">
+          <div class="txt-align-start min-width flex-item-grow">
+            <strong><%= charge.amount_label %></strong>
+            <div class="txt-x-small txt-subtle"><%= charge.agreement_version.label %></div>
+          </div>
+          <%= link_to(charge.subscription? ? "Set up payment" : "Pay now", charge.pay_url(current_contact.email), class: "btn btn--link txt-small") %>
+        </li>
+      <% end %>
+    </ul>
+  </section>
+<% end %>
